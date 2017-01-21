@@ -1,20 +1,7 @@
 on boot
 # unmap left alt to avoid console switch
     setkey 0x0 0x38 0x0
-# device reset SEND+MENU+END
-    setkey 0x0 0xe7 0x706
-    setkey 0x0 0x8b 0x707
-
-    setkey 0x40 0xe7 0x706
-    setkey 0x40 0x8b 0x707
-
-    setkey 0x80 0xe7 0x706
-    setkey 0x80 0x8b 0x707
-
-    setkey 0xc0 0xe7 0x706
-    setkey 0xc0 0x8b 0x707
-    setkey 0xc0 0x6b 0x20c
-
+    
     mkdir /data/misc/wifi 0770 wifi wifi
     mkdir /data/misc/wifi/sockets 0770 wifi wifi
     mkdir /data/misc/dhcp 0770 dhcp dhcp
@@ -62,12 +49,12 @@ on boot
     write /sys/devices/system/cpu/cpu0/cpufreq/ondemand/up_threshold 90
 
     # performance tweaks for flash
-    write /sys/block/mtdblock3/bdi/read_ahead_kb 4
-    write /sys/block/mtdblock4/bdi/read_ahead_kb 4
-    write /sys/block/mtdblock5/bdi/read_ahead_kb 4
+    write /sys/block/mtdblock3/bdi/read_ahead_kb 0
+    write /sys/block/mtdblock4/bdi/read_ahead_kb 0
+    write /sys/block/mtdblock5/bdi/read_ahead_kb 0
 
     # increase read throughput from sd card
-    write /sys/block/mmcblk0/bdi/read_ahead_kb 1024
+    write /sys/block/mmcblk0/bdi/read_ahead_kb 0
 
     # enable low memory killer to check file pages
     write /sys/module/lowmemorykiller/parameters/minfree 3584,4096,8192,10240,11264,12288
@@ -83,7 +70,7 @@ on boot
     write /proc/sys/net/core/rmem_max 262144
     write /proc/sys/net/core/wmem_max 262144
 
-    setrlimit 8 268435456 268435456
+    setrlimit 8 30 10 10
 
 # compass/accelerometer daemon
 service akmd /system/bin/akmd
@@ -95,38 +82,32 @@ service calibrate_screen /system/bin/calibrate_screen
     group root
     oneshot
 
-service wlan_loader /system/bin/wlan_loader \
-    -f /system/etc/wifi/Fw1251r1c.bin -e /proc/calibration \
+service wlan_loader /system/bin/wlan_loader
+    -f /system/etc/wifi/Fw1251r1c.bin -e /proc/calibration
     -i /system/etc/wifi/tiwlan.ini
-    disabled
     oneshot
 
-service wpa_supplicant /system/bin/wpa_supplicant \
+service wpa_supplicant /system/bin/wpa_supplicant
     -Dtiwlan0 -itiwlan0 -c/data/misc/wifi/wpa_supplicant.conf -q
 #   we will start as root and wpa_supplicant will switch to user wifi
 #   after setting up the capabilities required for WEXT
-#   user wifi
-#   group wifi inet keystore
+    user wifi
+    group wifi inet keystore
     socket wpa_tiwlan0 dgram 660 wifi wifi
-    disabled
     oneshot
 
 service dhcpcd_tiwlan0 /system/bin/dhcpcd -ABKL
-    disabled
     oneshot
 
 service iprenew_tiwlan0 /system/bin/dhcpcd -n
-    disabled
     oneshot
 
-service hciattach /system/bin/hciattach \
+service hciattach /system/bin/hciattach
     -n -s 115200 /dev/ttyHS0 texasalt 4000000 flow
     user bluetooth
     group bluetooth net_bt_admin
-    disabled
 
 # bugreport is triggered by the KEY_BACK and KEY_MENU keycodes
 service bugreport /system/bin/dumpstate -d -v -o /sdcard/bugreports/bugreport
-    disabled
     oneshot
     keycodes 158 139
